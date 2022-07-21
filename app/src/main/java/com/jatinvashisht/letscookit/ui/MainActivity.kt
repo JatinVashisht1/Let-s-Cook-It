@@ -1,4 +1,4 @@
-package com.jatinvashisht.letscookit
+package com.jatinvashisht.letscookit.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
