@@ -6,12 +6,21 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
-import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.jatinvashisht.letscookit.core.Constants
+import com.jatinvashisht.letscookit.core.Screen
+import com.jatinvashisht.letscookit.ui.home_screen.HomeScreen
+import com.jatinvashisht.letscookit.ui.recipe_list_screen.RecipeListScreen
+import com.jatinvashisht.letscookit.ui.recipe_screen.RecipeScreen
 import com.jatinvashisht.letscookit.ui.theme.LetsCookItTheme
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,7 +31,42 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colors.background
                 ) {
+                    val navController = rememberNavController()
 
+                    NavHost(
+                        navController = navController,
+                        startDestination = Screen.HomeScreen.route
+                    ) {
+                        composable(route = Screen.HomeScreen.route) {
+                            HomeScreen(navController = navController)
+                        }
+                        composable(route = Screen.RecipeScreen.route + "/{${Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY}}/{${Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY}}",
+                            arguments = listOf(
+                                navArgument(name = Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY) {
+                                    type = NavType.StringType
+                                },
+                                navArgument(name = Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY) {
+                                    type = NavType.StringType
+                                }
+                            )) {
+                            RecipeScreen(navController = navController)
+                        }
+                        composable(
+                            route = Screen.RecipeListScreen.route + "/{${Constants.RECIPE_LIST_SCREEN_RECIPE_CATEGORY_KEY}}/{${Constants.RECIPE_LIST_SCREEN_RECIPE_IMAGE_URL_KEY}}",
+                            arguments = listOf(
+                                navArgument(name = Constants.RECIPE_LIST_SCREEN_RECIPE_CATEGORY_KEY) {
+                                    type = NavType.StringType
+                                },
+                                navArgument(name = Constants.RECIPE_LIST_SCREEN_RECIPE_IMAGE_URL_KEY)
+                                {
+                                    type = NavType.StringType
+//                                    defaultValue = "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=481&q=80"
+                                },
+                            )
+                        ) {
+                            RecipeListScreen(navController = navController)
+                        }
+                    }
                 }
             }
         }
