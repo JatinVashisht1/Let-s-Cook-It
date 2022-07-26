@@ -1,13 +1,14 @@
 package com.jatinvashisht.letscookit.data.local
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy.REPLACE
 import androidx.room.Query
 
 @Dao
 interface RecipeDao{
-    @Insert(onConflict = REPLACE)
+    @Insert(entity = RecipeEntity::class,onConflict = REPLACE)
     suspend fun insertRecipes(recipeEntities: List<RecipeEntity>)
 
     @Query("DELETE FROM recipeentity")
@@ -28,4 +29,13 @@ interface RecipeDao{
 
     @Query("SELECT * FROM recipeentity WHERE tag = :category AND LOWER(title) LIKE '%' || LOWER(:recipe) || '%' ")
     suspend fun getRecipeByTag(category: String, recipe: String): List<RecipeEntity>
+
+    @Insert(entity = LocalRecipeEntity::class, onConflict = REPLACE)
+    suspend fun insertLocalRecipeEntity(localRecipeEntity: LocalRecipeEntity)
+
+    @Query("SELECT * FROM localrecipeentity")
+    suspend fun getSavedRecipes(): List<LocalRecipeEntity>
+
+    @Query("DELETE FROM localrecipeentity WHERE title = :title")
+    suspend fun deleteLocalRecipeEntity(title: String)
 }

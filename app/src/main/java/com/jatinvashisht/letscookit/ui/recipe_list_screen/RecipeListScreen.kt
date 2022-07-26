@@ -52,11 +52,6 @@ fun RecipeListScreen(
     val showSearchBoxState = rememberSaveable { mutableStateOf(false) }
     val searchBoxState = viewModel.searchBoxState.value
     val keyboardController = LocalSoftwareKeyboardController.current
-//    val focusRequester = remember { FocusRequester() }
-//
-//    LaunchedEffect(key1 = Unit) {
-//        focusRequester.requestFocus()
-//    }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item {
@@ -171,62 +166,48 @@ fun RecipeListScreen(
             }
         }
 
-        if (state.isLoading) {
-            item(1) {
-                Box(modifier = Modifier.fillMaxSize()) {
-                    CircularProgressIndicator(color = MaterialTheme.colors.primaryVariant)
-                }
-            }
-        } 
-        else if(state.error.isNullOrBlank()){
-            item(2){
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text(text = state.error.toString())
-                }
-            }
-        }
-        else {
-            items(state.items.size) { index ->
-                Log.d("HomeScreen", "item size is ${state.items.size} and index is $index")
-                val item = state.items[index]
+        items(state.items.size) { index ->
+            Log.d("HomeScreen", "item size is ${state.items.size} and index is $index")
+            val item = state.items[index]
 
-                // below statement is a part of side effect
-                LaunchedEffect(key1 = index >= state.items.size - 5 && !state.endReached && !state.isLoading) {
-                    Log.d("If tag", "entered if statement")
+            // below statement is a part of side effect
+            LaunchedEffect(key1 = Unit) {
+                if (index >= state.items.size - 5 && !state.endReached && !state.isLoading) {
+                    Log.d("recipelistscreen", "entered if statement")
                     viewModel.loadNextItems()
                 }
-                Column(
+            }
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(250.dp)
+                    .padding(MyPadding.small)
+            ) {
+                SubcomposeAsyncImage(
+                    model = item.imageUrl,
+                    contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(250.dp)
-                        .padding(MyPadding.small)
-                ) {
-                    SubcomposeAsyncImage(
-                        model = item.imageUrl,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .fillMaxHeight(0.8f)
-                            .graphicsLayer {
-                                shape = RoundedCornerShape(MyPadding.medium)
-                                clip = true
+                        .fillMaxHeight(0.8f)
+                        .graphicsLayer {
+                            shape = RoundedCornerShape(MyPadding.medium)
+                            clip = true
+                        }
+                        .clickable {
+                            navController.navigate(Screen.RecipeScreen.route + "/${item.title}/${item.tag}") {
+                                launchSingleTop = true
                             }
-                            .clickable {
-                                navController.navigate(Screen.RecipeScreen.route + "/${item.title}/${item.tag}") {
-                                    launchSingleTop = true
-                                }
-                            },
-                        contentScale = ContentScale.Crop,
-                        filterQuality = FilterQuality.Medium,
-                    )
-                    Text(
-                        text = item.title,
-                        fontFamily = lemonMilkFonts,
-                        fontWeight = FontWeight.Normal,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                    )
-                }
+                        },
+                    contentScale = ContentScale.Crop,
+                    filterQuality = FilterQuality.Medium,
+                )
+                Text(
+                    text = item.title,
+                    fontFamily = lemonMilkFonts,
+                    fontWeight = FontWeight.Normal,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                )
             }
         }
     }

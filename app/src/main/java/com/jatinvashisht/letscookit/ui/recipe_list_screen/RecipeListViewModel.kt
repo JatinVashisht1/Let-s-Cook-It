@@ -54,7 +54,7 @@ class RecipeListViewModel @Inject constructor(
     }
 
     fun onSearchBoxValueChanged(newValue: String) {
-        _searchBoxState.value = newValue.trim()
+        _searchBoxState.value = newValue
         searchJob?.cancel()
         searchJob = viewModelScope.launch {
             delay(500L)
@@ -68,7 +68,7 @@ class RecipeListViewModel @Inject constructor(
         searchRecipe(searchBoxState.value).loadNextItems()
     }
 
-    fun searchRecipe(recipe: String): RecipePaginator<Int, RecipeDtoItem> {
+    private fun searchRecipe(recipe: String): RecipePaginator<Int, RecipeDtoItem> {
         return RecipePaginator<Int, RecipeDtoItem>(
             initialKey = state.page,
             onLoadUpdated = {

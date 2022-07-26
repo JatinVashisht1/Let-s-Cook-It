@@ -26,4 +26,6 @@ interface RecipeRepository {
         pageSize: Int,
         fetchFromRemote: Boolean,
     ): Resource<List<RecipeDtoItem>>
+
+
 }

@@ -7,7 +7,7 @@ import com.jatinvashisht.letscookit.data.converter.IngredientConverter
 import com.jatinvashisht.letscookit.data.converter.MethodConverter
 
 @Database(
-    entities = [RecipeEntity::class],
+    entities = [RecipeEntity::class, LocalRecipeEntity::class],
     version = 1,
 )
 @TypeConverters(IngredientConverter::class, MethodConverter::class)
