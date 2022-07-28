@@ -8,6 +8,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import coil.compose.SubcomposeAsyncImage
 import com.jatinvashisht.letscookit.core.MyPadding
 import com.jatinvashisht.letscookit.core.lemonMilkFonts
 import com.jatinvashisht.letscookit.ui.custom_view.CustomShape
+import kotlinx.coroutines.flow.collectLatest
 
 @Composable
 fun RecipeScreen(
@@ -33,6 +35,17 @@ fun RecipeScreen(
     viewModel: RecipeScreenViewModel = hiltViewModel()
 ) {
     val screenState = viewModel.recipeState.value
+    val scaffoldState = rememberScaffoldState()
+
+    LaunchedEffect(key1 = Unit){
+        viewModel.uiRecipeScreenEvents.collectLatest { event->
+            when(event){
+                is RecipeScreenEvents.ShowSnackbar -> {
+                    scaffoldState.snackbarHostState.showSnackbar(message = event.message)
+                }
+            }
+        }
+    }
 
     when {
         screenState.isLoading -> {
@@ -54,124 +67,133 @@ fun RecipeScreen(
             }
         }
         else -> {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
-                item {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(LocalConfiguration.current.screenHeightDp.dp / 2)
-                            .graphicsLayer {
-                                shadowElevation = 8.dp.toPx()
-                                shape = CustomShape()
-                                clip = true
-                            }
-                            .drawBehind {
-                                drawRect(color = Color(0xFF000000))
-                            },
-//                        contentAlignment = Alignment.Center
-                    ) {
-                        Row(modifier = Modifier
-                            .fillMaxWidth()
-                            .align(Alignment.TopCenter)
-                            .drawBehind { drawRect(color = Color.Transparent) },
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-//                            Text(
-//                                text = "Recipe Screen",
-//                                fontFamily = lemonMilkFonts,
-//                                fontWeight = FontWeight.Normal,
-//                                style = MaterialTheme.typography.h6,
-//                            )
-                            IconButton(onClick = { navController.navigateUp() }, modifier = Modifier.padding(4.dp)) {
-                                Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "goto home screen",)
-                            }
-
-                            IconButton(onClick = {  }, modifier = Modifier.padding(4.dp)) {
-                                Icon(imageVector = Icons.Default.Save, contentDescription = "Save Recipe",)
-                            }
-                        }
-                        SubcomposeAsyncImage(
-                            model = screenState.recipe.imageUrl,
-                            loading = {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(50.dp),
-                                    color = MaterialTheme.colors.primaryVariant
-                                )
-                            },
-                            contentDescription = null,
+            Scaffold(scaffoldState = scaffoldState) {
+                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    item {
+                        Box(
                             modifier = Modifier
-                                .fillMaxSize()
+                                .fillMaxWidth()
+                                .height(LocalConfiguration.current.screenHeightDp.dp / 2)
                                 .graphicsLayer {
-                                    this.alpha = 0.25f
                                     shadowElevation = 8.dp.toPx()
+                                    shape = CustomShape()
                                     clip = true
                                 }
-                                .align(Alignment.Center),
-                            contentScale = ContentScale.Crop
-                        )
+                                .drawBehind {
+                                    drawRect(color = Color(0xFF000000))
+                                },
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .align(Alignment.TopCenter)
+                                    .drawBehind { drawRect(color = Color.Transparent) },
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                IconButton(
+                                    onClick = { navController.navigateUp() },
+                                    modifier = Modifier.padding(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.ArrowBack,
+                                        contentDescription = "goto home screen",
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = viewModel::onSaveRecipeButtonClicked,
+                                    modifier = Modifier.padding(4.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Save,
+                                        contentDescription = "Save Recipe",
+                                    )
+                                }
+                            }
+
+                            SubcomposeAsyncImage(
+                                model = screenState.recipe.imageUrl,
+                                loading = {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(50.dp),
+                                        color = MaterialTheme.colors.primaryVariant
+                                    )
+                                },
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .graphicsLayer {
+                                        this.alpha = 0.25f
+                                        shadowElevation = 8.dp.toPx()
+                                        clip = true
+                                    }
+                                    .align(Alignment.Center),
+                                contentScale = ContentScale.Crop
+                            )
+                            Text(
+                                text = screenState.recipe.title,
+                                style = MaterialTheme.typography.h4,
+                                fontWeight = FontWeight.ExtraLight,
+                                textAlign = TextAlign.Center,
+                                color = MaterialTheme.colors.onSurface,
+                                fontFamily = lemonMilkFonts,
+                                modifier = Modifier.align(Alignment.Center)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(MyPadding.medium))
+                    }
+
+                    item {
                         Text(
-                            text = screenState.recipe.title,
-                            style = MaterialTheme.typography.h4,
-                            fontWeight = FontWeight.ExtraLight,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colors.onSurface,
+                            text = "Ingredients",
                             fontFamily = lemonMilkFonts,
-                            modifier = Modifier.align(Alignment.Center)
+                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.h4,
+                            modifier = Modifier.padding(horizontal = MyPadding.medium)
                         )
+                        Spacer(modifier = Modifier.height(MyPadding.medium))
                     }
-                    Spacer(modifier = Modifier.height(MyPadding.medium))
-                }
 
-                item {
-                    Text(
-                        text = "Ingredients",
-                        fontFamily = lemonMilkFonts,
-                        fontWeight = FontWeight.Medium,
-                        style = MaterialTheme.typography.h4,
-                        modifier = Modifier.padding(horizontal = MyPadding.medium)
-                    )
-                    Spacer(modifier = Modifier.height(MyPadding.medium))
-                }
-
-                items(screenState.recipe.ingredient) { ingredient ->
-                    val ingredientInFloat =
-                        rememberSaveable { mutableStateOf(ingredient.quantity.toFloatOrNull()) }
-                    val ingredientInString = if (ingredientInFloat.value == null) {
-                        ""
-                    } else {
-                        "${ingredientInFloat.value} "
+                    items(screenState.recipe.ingredient) { ingredient ->
+                        val ingredientInFloat =
+                            rememberSaveable { mutableStateOf(ingredient.quantity.toFloatOrNull()) }
+                        val ingredientInString = if (ingredientInFloat.value == null) {
+                            ""
+                        } else {
+                            "${ingredientInFloat.value} "
+                        }
+                        Text(
+                            text = "$ingredientInString${ingredient.description}",
+                            fontFamily = lemonMilkFonts,
+                            fontWeight = FontWeight.Normal,
+                            style = MaterialTheme.typography.body1,
+                            modifier = Modifier.padding(horizontal = MyPadding.medium)
+                        )
+                        Spacer(modifier = Modifier.height(MyPadding.medium))
                     }
-                    Text(
-                        text = "$ingredientInString${ingredient.description}",
-                        fontFamily = lemonMilkFonts,
-                        fontWeight = FontWeight.Normal,
-                        style = MaterialTheme.typography.body1,
-                        modifier = Modifier.padding(horizontal = MyPadding.medium)
-                    )
-                    Spacer(modifier = Modifier.height(MyPadding.medium))
-                }
 
-                item {
-                    Text(
-                        text = "Method",
-                        fontFamily = lemonMilkFonts,
-                        fontWeight = FontWeight.Medium,
-                        style = MaterialTheme.typography.h4,
-                        modifier = Modifier.padding(horizontal = MyPadding.medium)
-                    )
-                    Spacer(modifier = Modifier.height(MyPadding.medium))
-                }
+                    item {
+                        Text(
+                            text = "Method",
+                            fontFamily = lemonMilkFonts,
+                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.h4,
+                            modifier = Modifier.padding(horizontal = MyPadding.medium)
+                        )
+                        Spacer(modifier = Modifier.height(MyPadding.medium))
+                    }
 
-                items(screenState.recipe.method) { method ->
-                    Text(
-                        text = method,
-                        fontFamily = lemonMilkFonts,
-                        fontWeight = FontWeight.Normal,
-                        style = MaterialTheme.typography.body1,
-                        modifier = Modifier.padding(horizontal = MyPadding.medium)
-                    )
-                    Spacer(modifier = Modifier.height(MyPadding.medium))
+                    items(screenState.recipe.method) { method ->
+                        Text(
+                            text = method,
+                            fontFamily = lemonMilkFonts,
+                            fontWeight = FontWeight.Normal,
+                            style = MaterialTheme.typography.body1,
+                            modifier = Modifier.padding(horizontal = MyPadding.medium)
+                        )
+                        Spacer(modifier = Modifier.height(MyPadding.medium))
+                    }
                 }
             }
         }

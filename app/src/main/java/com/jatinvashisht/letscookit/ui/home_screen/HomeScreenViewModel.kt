@@ -16,7 +16,9 @@ import com.jatinvashisht.letscookit.ui.home_screen.components.ComponentTopRecipe
 import com.jatinvashisht.letscookit.ui.recipe_list_screen.RecipeListScreenState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -35,42 +37,21 @@ class HomeScreenViewModel @Inject constructor(
         mutableStateOf<ComponentCategoriesState>(ComponentCategoriesState())
     val categoriesState: State<ComponentCategoriesState> = _categoriesState
 
-    val recipePaginator = RecipePaginator<Int, RecipeDtoItem>(
-        initialKey = state.page,
-        onLoadUpdated = {
-            state = state.copy(isLoading = it)
-        },
-        onRequest = { nextPage ->
-            recipeRepository.getRecipes("snacks", state.page, 20, fetchFromRemote = false)
-        },
-        getNextKey = { items ->
-            state.page + 1
-        },
-        onError = { throwable ->
-            state = state.copy(
-                error = throwable?.localizedMessage
-                    ?: "unable to load items, please try again later"
-            )
-        }
-    ) { newItems, newKey ->
-        state = state.copy(
-            items = state.items + newItems,
-            page = newKey,
-            endReached = newItems.isEmpty(),
-        )
-    }
+    private val _uiEvents = Channel<HomeScreenUiEvents>()
+    val uiEvents = _uiEvents.receiveAsFlow()
+
 
     init {
         viewModelScope.launch {
-            async { loadNextItems() }
+//            async { loadNextItems() }
             async { loadTopRecipes() }
             async { loadCategories() }
         }
     }
 
-    private suspend fun loadNextItems() {
-        recipePaginator.loadNextItems()
-    }
+//    private suspend fun loadNextItems() {
+//        recipePaginator.loadNextItems()
+//    }
 
     private suspend fun loadTopRecipes() {
         when (val recipeState = recipeRepository.getFirstFourRecipes()) {
@@ -123,4 +104,22 @@ class HomeScreenViewModel @Inject constructor(
             loadTopRecipes()
         }
     }
+
+    fun sendUiEvents(event: HomeScreenUiEvents){
+        viewModelScope.launch {
+            when(event){
+                HomeScreenUiEvents.CloseNavDrawer -> {
+                    _uiEvents.send(HomeScreenUiEvents.CloseNavDrawer)
+                }
+                HomeScreenUiEvents.OpenNavDrawer -> {
+                    _uiEvents.send(HomeScreenUiEvents.OpenNavDrawer)
+                }
+            }
+        }
+    }
+}
+
+sealed interface HomeScreenUiEvents{
+    object CloseNavDrawer: HomeScreenUiEvents
+    object OpenNavDrawer: HomeScreenUiEvents
 }

@@ -40,19 +40,23 @@ class MainActivity : ComponentActivity() {
                         composable(route = Screen.HomeScreen.route) {
                             HomeScreen(navController = navController)
                         }
-                        composable(route = Screen.RecipeScreen.route + "/{${Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY}}/{${Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY}}",
+                        composable(route = Screen.RecipeScreen.route + "/{${Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY}}/{${Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY}}/{${Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES}}",
                             arguments = listOf(
                                 navArgument(name = Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY) {
                                     type = NavType.StringType
                                 },
                                 navArgument(name = Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY) {
                                     type = NavType.StringType
-                                }
+                                },
+                                navArgument(name = Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES)
+                                {
+                                    type = NavType.BoolType
+                                },
                             )) {
                             RecipeScreen(navController = navController)
                         }
                         composable(
-                            route = Screen.RecipeListScreen.route + "/{${Constants.RECIPE_LIST_SCREEN_RECIPE_CATEGORY_KEY}}/{${Constants.RECIPE_LIST_SCREEN_RECIPE_IMAGE_URL_KEY}}",
+                            route = Screen.RecipeListScreen.route + "/{${Constants.RECIPE_LIST_SCREEN_RECIPE_CATEGORY_KEY}}/{${Constants.RECIPE_LIST_SCREEN_RECIPE_IMAGE_URL_KEY}}/{${Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES}}",
                             arguments = listOf(
                                 navArgument(name = Constants.RECIPE_LIST_SCREEN_RECIPE_CATEGORY_KEY) {
                                     type = NavType.StringType
@@ -60,7 +64,10 @@ class MainActivity : ComponentActivity() {
                                 navArgument(name = Constants.RECIPE_LIST_SCREEN_RECIPE_IMAGE_URL_KEY)
                                 {
                                     type = NavType.StringType
-//                                    defaultValue = "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=481&q=80"
+                                },
+                                navArgument(name = Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES)
+                                {
+                                    type = NavType.BoolType
                                 },
                             )
                         ) {

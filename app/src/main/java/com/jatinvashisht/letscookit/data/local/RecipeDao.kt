@@ -31,11 +31,32 @@ interface RecipeDao{
     suspend fun getRecipeByTag(category: String, recipe: String): List<RecipeEntity>
 
     @Insert(entity = LocalRecipeEntity::class, onConflict = REPLACE)
-    suspend fun insertLocalRecipeEntity(localRecipeEntity: LocalRecipeEntity)
+    suspend fun saveRecipe(localRecipeEntity: LocalRecipeEntity)
 
     @Query("SELECT * FROM localrecipeentity")
     suspend fun getSavedRecipes(): List<LocalRecipeEntity>
 
     @Query("DELETE FROM localrecipeentity WHERE title = :title")
     suspend fun deleteLocalRecipeEntity(title: String)
+
+    @Query("SELECT * FROM localrecipeentity WHERE title = :title")
+    suspend fun getSavedRecipeByTitle(title: String): LocalRecipeEntity?
+
+    @Query("DELETE FROM localrecipeentity")
+    suspend fun deleteAllSavedRecipes()
+
+    @Query("SELECT * FROM localrecipeentity WHERE LOWER(title) LIKE '%' || LOWER(:recipe) || '%' ")
+    suspend fun searchSavedRecipe(recipe: String): List<LocalRecipeEntity>
+
+    @Query("DELETE FROM localrecipeentity WHERE title IN (:titles)")
+    suspend fun deleteLocalRecipes(titles: List<String>)
+
+    @Query("SELECT * FROM localrecipecategoryentity")
+    suspend fun getAllCategories(): List<LocalRecipeCategoryEntity>
+
+    @Insert(entity = LocalRecipeCategoryEntity::class, onConflict = REPLACE)
+    suspend fun insertLocalCategories(categories: List<LocalRecipeCategoryEntity>)
+
+    @Query("DELETE FROM localrecipecategoryentity")
+    suspend fun deleteAllCategories()
 }

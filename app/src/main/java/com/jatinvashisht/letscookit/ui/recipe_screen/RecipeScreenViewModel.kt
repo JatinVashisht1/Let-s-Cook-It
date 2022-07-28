@@ -10,67 +10,114 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jatinvashisht.letscookit.core.Constants
 import com.jatinvashisht.letscookit.core.Resource
+import com.jatinvashisht.letscookit.data.mapper.toRecipeDtoItem
 import com.jatinvashisht.letscookit.data.remote.dto.recipes.RecipeDtoItem
 import com.jatinvashisht.letscookit.domain.repository.RecipeRepository
 import com.jatinvashisht.letscookit.domain.usecases.UseCaseGetRecipeByTitle
+import com.jatinvashisht.letscookit.domain.usecases.UseCaseSaveRecipe
 import com.jatinvashisht.letscookit.ui.recipe_screen.components.RecipeScreenState
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 @HiltViewModel
 class RecipeScreenViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    private val getRecipeByTitleUseCase: UseCaseGetRecipeByTitle,
     private val recipeRepository: RecipeRepository,
-) : ViewModel(){
+    private val useCaseSaveRecipe: UseCaseSaveRecipe
+) : ViewModel() {
     private val _recipeState = mutableStateOf<RecipeScreenState>(RecipeScreenState())
     val recipeState: State<RecipeScreenState> = _recipeState
 
     private val recipeTitle = mutableStateOf("")
     private val recipeCategory = mutableStateOf("")
 
-
+    private val _uiRecipeScreenEvents: Channel<RecipeScreenEvents> = Channel()
+    val uiRecipeScreenEvents = _uiRecipeScreenEvents.receiveAsFlow()
 
     init {
         viewModelScope.launch {
             val recipe = savedStateHandle.get<String>(Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY)
-            recipeTitle.value = recipe?: ""
+            recipeTitle.value = recipe ?: ""
 
             val category = savedStateHandle.get<String>(Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY)
-            recipeCategory.value = category?: ""
+            recipeCategory.value = category ?: ""
             Log.d("recipescreenviewmodel", "recipe is $recipe")
-            getRecipe()
+
+            val shouldLoadFromSavedRecipes = savedStateHandle.get<Boolean>(Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES) ?: true
+            Log.d("recipescreenviewmodel", "should load from saved recipes is $shouldLoadFromSavedRecipes")
+            getRecipe(shouldLoadFromSavedRecipes = shouldLoadFromSavedRecipes)
         }
     }
 
-    private suspend fun getRecipe(){
-
-//        val result = recipeRepository.getRecipeByTitle(title = recipeTitle.value)
-//        when(result){
-//            is Resource.Error -> {
-//                _recipeState.value = _recipeState.value.copy(isLoading = false, error = "Unable to load recipe. Please try again later")
-//            }
-//            is Resource.Loading -> {
-//                _recipeState.value = _recipeState.value.copy(isLoading = true, error = "",)
-//            }
-//            is Resource.Success -> {
-//                _recipeState.value = _recipeState.value.copy(isLoading = false, recipe = result.data?: RecipeDtoItem())
-//            }
-//        }
-
-        recipeRepository.getRecipeByTitle(title = recipeTitle.value, category = recipeCategory.value).collectLatest { recipeResult->
-            when(recipeResult){
+    private suspend fun getRecipe(shouldLoadFromSavedRecipes: Boolean) {
+        if (shouldLoadFromSavedRecipes) {
+            val recipeResult = recipeRepository.getLocalRecipeByTitle(title = recipeTitle.value)
+            when (recipeResult) {
                 is Resource.Error -> {
-                    _recipeState.value = _recipeState.value.copy(isLoading = false, error = "Unable to load recipe. Please try again later")
+                    _recipeState.value = _recipeState.value.copy(
+                        isLoading = false,
+                        error = "Unable to load recipe. Please try again later"
+                    )
                 }
                 is Resource.Loading -> {
-                    _recipeState.value = _recipeState.value.copy(isLoading = true, error = "",)
+                    _recipeState.value = _recipeState.value.copy(isLoading = true, error = "")
                 }
                 is Resource.Success -> {
-                    _recipeState.value = _recipeState.value.copy(isLoading = false, recipe = recipeResult.data?: RecipeDtoItem())
+                    _recipeState.value = _recipeState.value.copy(
+                        isLoading = false,
+                        recipe = recipeResult.data?.toRecipeDtoItem() ?: RecipeDtoItem()
+                    )
+                }
+            }
+        } else {
+            recipeRepository.getRecipeByTitle(
+                title = recipeTitle.value,
+                category = recipeCategory.value
+            ).collectLatest { recipeResult ->
+                when (recipeResult) {
+                    is Resource.Error -> {
+                        _recipeState.value = _recipeState.value.copy(
+                            isLoading = false,
+                            error = "Unable to load recipe. Please try again later"
+                        )
+                    }
+                    is Resource.Loading -> {
+                        _recipeState.value = _recipeState.value.copy(isLoading = true, error = "")
+                    }
+                    is Resource.Success -> {
+                        _recipeState.value = _recipeState.value.copy(
+                            isLoading = false,
+                            recipe = recipeResult.data ?: RecipeDtoItem()
+                        )
+                    }
                 }
             }
         }
     }
 
+    private fun sendRecipeScreenUiEvent(uiEvents: RecipeScreenEvents) {
+        viewModelScope.launch {
+            when (uiEvents) {
+                is RecipeScreenEvents.ShowSnackbar -> _uiRecipeScreenEvents.send(
+                    RecipeScreenEvents.ShowSnackbar(
+                        message = uiEvents.message
+                    )
+                )
+            }
+        }
+    }
+
+    fun onSaveRecipeButtonClicked() {
+        viewModelScope.launch {
+            val currentRecipe = _recipeState.value.recipe
+            val result = useCaseSaveRecipe(recipeDtoItem = currentRecipe)
+            sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar(result))
+        }
+    }
+}
+
+sealed interface RecipeScreenEvents {
+    class ShowSnackbar(val message: String) : RecipeScreenEvents
 }

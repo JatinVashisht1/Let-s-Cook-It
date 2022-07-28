@@ -1,14 +1,18 @@
 package com.jatinvashisht.letscookit.data.remote.repository
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import android.util.Log
 import com.jatinvashisht.letscookit.core.Resource
 import com.jatinvashisht.letscookit.data.local.RecipeDatabase
 import com.jatinvashisht.letscookit.data.local.RecipeEntity
-import com.jatinvashisht.letscookit.data.mapper.toRecipeDtoItem
-import com.jatinvashisht.letscookit.data.mapper.toRecipeEntity
+import com.jatinvashisht.letscookit.data.mapper.*
 import com.jatinvashisht.letscookit.data.remote.RecipeApi
 import com.jatinvashisht.letscookit.data.remote.dto.categories.CategoryDtoItem
 import com.jatinvashisht.letscookit.data.remote.dto.recipes.RecipeDtoItem
+import com.jatinvashisht.letscookit.domain.model.ModelLocalRecipe
 import com.jatinvashisht.letscookit.domain.repository.RecipeRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -23,7 +27,8 @@ class RecipeRepositoryImpl @Inject constructor(
     override suspend fun getFirstFourRecipes(): Resource<List<RecipeDtoItem>> {
         try {
             val shouldJustLoadFromCache = recipeDao.searchRecipe("").isNotEmpty()
-            val myRecipes: List<RecipeEntity> = if (!shouldJustLoadFromCache) {
+            Log.d("reciperepository", "should just load from cache is, $shouldJustLoadFromCache")
+            val myRecipes: List<RecipeEntity> = if (shouldJustLoadFromCache) {
                 recipeDao.getFirstFourRecipes()
             } else {
                 recipeDao.clearRecipes()
@@ -44,11 +49,14 @@ class RecipeRepositoryImpl @Inject constructor(
 
     }
 
-    override suspend fun getRecipeByTitle(title: String, category: String): Flow<Resource<RecipeDtoItem>> = flow{
+    override suspend fun getRecipeByTitle(
+        title: String,
+        category: String
+    ): Flow<Resource<RecipeDtoItem>> = flow {
         try {
             var recipeFromDb = recipeDao.getRecipeByTitle(recipeTitle = title.toString())
             Log.d("reciperepository", "recipeFromDb in get recipe by category is, $category")
-            if(recipeFromDb == null){
+            if (recipeFromDb == null) {
                 recipeDao.clearRecipes()
                 val remoteEntities = recipeApi.getRecipeList(category)
                 recipeDao.insertRecipes(remoteEntities.map {
@@ -56,7 +64,7 @@ class RecipeRepositoryImpl @Inject constructor(
                 })
                 recipeFromDb = recipeDao.getRecipeByTitle(recipeTitle = title)
             }
-            val recipeEntity = recipeFromDb?.toRecipeDtoItem()?: RecipeDtoItem()
+            val recipeEntity = recipeFromDb?.toRecipeDtoItem() ?: RecipeDtoItem()
             emit(Resource.Success<RecipeDtoItem>(recipeEntity))
         } catch (e: Exception) {
             Log.d("reciperepository", "unable to get recipe by title, \n $e")
@@ -68,10 +76,24 @@ class RecipeRepositoryImpl @Inject constructor(
         try {
             emit(Resource.Loading<List<CategoryDtoItem>>())
             val recipes = recipeApi.getCategory()
-            emit(Resource.Success<List<CategoryDtoItem>>(data = recipes))
+
+            // no recipes are fetched
+            if (recipes.isNotEmpty()) {
+                recipeDao.deleteAllCategories()
+                recipeDao.insertLocalCategories(recipes.map { it.toLocalRecipeCategoryEntity() })
+            }
+            val localCategories = recipeDao.getAllCategories()
+            emit(Resource.Success<List<CategoryDtoItem>>(data = localCategories.map { it.toCategoryDtoItem() }))
         } catch (e: Exception) {
-            Log.d("reciperepository", "unable to get categories, $e")
-            emit(Resource.Error<List<CategoryDtoItem>>("unable to load categories, please try again later"))
+            // unable to fetch categories from internet trying to fetch from local cache
+            try {
+                val recipes = recipeDao.getAllCategories()
+                emit(Resource.Success<List<CategoryDtoItem>>(recipes.map { it.toCategoryDtoItem() }))
+            } catch (e: Exception) {
+                // something really wrong has occurred, giving error message
+                Log.d("reciperepository", "unable to get categories, $e")
+                emit(Resource.Error<List<CategoryDtoItem>>("unable to load categories, please try again later"))
+            }
         }
     }
 
@@ -81,52 +103,140 @@ class RecipeRepositoryImpl @Inject constructor(
         page: Int,
         pageSize: Int,
         fetchFromRemote: Boolean,
+        getSavedRecipes: Boolean
     ): Resource<List<RecipeDtoItem>> {
-        try {
-            val shouldJustLoadFromCache =
-                !fetchFromRemote && recipeDao.getRecipeByTag(category = category, recipe = recipe)
-                    .isNotEmpty()
-            val myRecipes: List<RecipeEntity> = if (!shouldJustLoadFromCache) {
-                recipeDao.clearRecipes()
-                val remoteEntities = recipeApi.getRecipeList(category)
-                recipeDao.insertRecipes(remoteEntities.map {
-                    it.toRecipeEntity()
-                })
-                recipeDao.getRecipeByTag(category = category, recipe = recipe)
-            } else {
-                Log.d("reciperepository", "inside should just load from cache")
-                recipeDao.getRecipeByTag(category = category, recipe = recipe)
-            }
-            Log.d("reciperepository", "recipes size are ${myRecipes.size}")
-            val recipes = myRecipes.map {
-                it.toRecipeDtoItem()
-            }
-            val startingIndex = page * pageSize
-            Log.d(
-                "reciperepository",
-                "starting index is $startingIndex, page is $page, pageSize is $pageSize, recipes size is ${recipes.size}"
-            )
-            val endingIndex = startingIndex + pageSize
+        if (getSavedRecipes) {
+        val myRecipes = recipeDao.searchSavedRecipe(recipe = recipe)
+        val recipes = myRecipes.map {
+            it.toModelLocalRecipe().toRecipeDtoItem()
+        }
+            try {
 
-            if (startingIndex < recipes.size) {
-                return if (endingIndex < recipes.size) {
-                    Log.d(
-                        "reciperepository",
-                        "starting index is $startingIndex, ending index is ${startingIndex + pageSize}, recipe is ${
-                            recipes.slice(
-                                startingIndex until startingIndex + pageSize
-                            )
-                        }"
-                    )
-                    Resource.Success<List<RecipeDtoItem>>(data = recipes.slice(startingIndex until startingIndex + pageSize))
+                val startingIndex = page * pageSize
+                val endingIndex = startingIndex + pageSize
+
+                if (startingIndex < recipes.size) {
+                    return if (endingIndex < recipes.size) {
+                        Resource.Success<List<RecipeDtoItem>>(data = recipes.slice(startingIndex until startingIndex + pageSize))
+                    } else {
+                        Resource.Success<List<RecipeDtoItem>>(data = recipes.slice(startingIndex until recipes.size))
+                    }
                 } else {
-                    Resource.Success<List<RecipeDtoItem>>(data = recipes.slice(startingIndex until recipes.size))
+                    return Resource.Success<List<RecipeDtoItem>>(data = emptyList())
                 }
-            } else {
-                return Resource.Success<List<RecipeDtoItem>>(data = emptyList())
+
+            } catch (e: Exception) {
+                return Resource.Error<List<RecipeDtoItem>>("unable to load data, please try again later")
             }
-        } catch (exception: Exception) {
-            return Resource.Error<List<RecipeDtoItem>>("unable to load data, please try again later")
+        } else {
+            try {
+                val shouldJustLoadFromCache =
+                    !fetchFromRemote && recipeDao.getRecipeByTag(
+                        category = category,
+                        recipe = recipe
+                    )
+                        .isNotEmpty()
+                Log.d(
+                    "reciperepository",
+                    "should just load from cache is $shouldJustLoadFromCache, fetch from remote is $fetchFromRemote, db result is ${
+                        recipeDao.getRecipeByTag(
+                            category = category,
+                            recipe = recipe
+                        ).size
+                    }"
+                )
+
+                val myRecipes: List<RecipeEntity> = if (!shouldJustLoadFromCache) {
+                    if(recipeDao.searchRecipe("").isEmpty()){
+                        recipeDao.clearRecipes()
+                    }
+                    val remoteEntities = recipeApi.getRecipeList(category)
+                    recipeDao.insertRecipes(remoteEntities.map {
+                        it.toRecipeEntity()
+                    })
+                    recipeDao.getRecipeByTag(category = category, recipe = recipe)
+                } else {
+                    Log.d("reciperepository", "inside should just load from cache")
+                    recipeDao.getRecipeByTag(category = category, recipe = recipe)
+                }
+                Log.d("reciperepository", "recipes size are ${myRecipes.size}")
+                val recipes = myRecipes.map {
+                    it.toRecipeDtoItem()
+                }
+                val startingIndex = page * pageSize
+                Log.d(
+                    "reciperepository",
+                    "starting index is $startingIndex, page is $page, pageSize is $pageSize, recipes size is ${recipes.size}"
+                )
+                val endingIndex = startingIndex + pageSize
+
+                if (startingIndex < recipes.size) {
+                    return if (endingIndex < recipes.size) {
+                        Log.d(
+                            "reciperepository",
+                            "starting index is $startingIndex, ending index is ${startingIndex + pageSize}, recipe is ${
+                                recipes.slice(
+                                    startingIndex until startingIndex + pageSize
+                                )
+                            }"
+                        )
+                        Resource.Success<List<RecipeDtoItem>>(data = recipes.slice(startingIndex until startingIndex + pageSize))
+                    } else {
+                        Resource.Success<List<RecipeDtoItem>>(data = recipes.slice(startingIndex until recipes.size))
+                    }
+                } else {
+                    return Resource.Success<List<RecipeDtoItem>>(data = emptyList())
+                }
+            } catch (exception: Exception) {
+                Log.d("reciperepository", "unable to load recipes by category\n $exception")
+                return Resource.Error<List<RecipeDtoItem>>("unable to load data, please try again later")
+            }
+        }
+    }
+
+    override suspend fun getSavedRecipes(): Resource<List<ModelLocalRecipe>> {
+        return try {
+            val savedRecipes = recipeDao.getSavedRecipes()
+            val modelLocalRecipe = savedRecipes.map { it.toModelLocalRecipe() }
+            Resource.Success<List<ModelLocalRecipe>>(data = modelLocalRecipe)
+        } catch (e: Exception) {
+            Log.d("reciperepository", "unable to get saved recipes\n $e")
+            Resource.Error<List<ModelLocalRecipe>>(error = "unable to load saved recipes, please try again later")
+        }
+    }
+
+    override suspend fun saveRecipe(recipeDtoItem: RecipeDtoItem): Resource<String> {
+        return try {
+            val localRecipeEntity = recipeDtoItem.toLocalRecipeEntity()
+            recipeDao.saveRecipe(localRecipeEntity = localRecipeEntity)
+            Resource.Success<String>("Recipe saved successfully")
+        } catch (e: Exception) {
+            Log.d("reciperepository", "unable to save recipe\n $e")
+            Resource.Error<String>("unable to save recipe, please try again")
+        }
+    }
+
+    override suspend fun getLocalRecipeByTitle(title: String): Resource<ModelLocalRecipe?> {
+        try {
+            val localRecipeEntity = recipeDao.getSavedRecipeByTitle(title = title)
+            if (localRecipeEntity == null) {
+                return Resource.Success<ModelLocalRecipe?>(data = localRecipeEntity)
+            }
+            val modelRecipeEntity = localRecipeEntity.toModelLocalRecipe()
+            return Resource.Success<ModelLocalRecipe?>(data = modelRecipeEntity)
+        } catch (e: Exception) {
+            Log.d("reciperepository", "unable to get saved recipe by title\n $e")
+            return Resource.Error<ModelLocalRecipe?>(error = "Unable to load recipes")
+        }
+    }
+
+    override suspend fun deleteSelectedSavedRecipes(recipeTitles: List<String>): String {
+        return try {
+            recipeDao.deleteLocalRecipes(titles = recipeTitles)
+            "Recipes DELETED successfully"
+        } catch (e: Exception) {
+            Log.d("reciperepository", "unable to delete recicpes\n $e")
+            "Recipes NOT deleted successfully, please try again"
         }
     }
 
@@ -136,6 +246,7 @@ class RecipeRepositoryImpl @Inject constructor(
         pageSize: Int,
         fetchFromRemote: Boolean,
     ): Resource<List<RecipeDtoItem>> {
+
         try {
             val shouldJustLoadFromCache =
                 !fetchFromRemote && recipeDao.searchRecipe("").isNotEmpty()

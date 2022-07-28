@@ -1,10 +1,7 @@
 package com.jatinvashisht.letscookit.ui.recipe_list_screen
 
 import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.lifecycle.SavedStateHandle
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -15,23 +12,29 @@ import com.jatinvashisht.letscookit.data.remote.dto.recipes.RecipeDtoItem
 import com.jatinvashisht.letscookit.domain.pagination.RecipePaginator
 import com.jatinvashisht.letscookit.domain.repository.RecipeRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import java.net.URLDecoder
-import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 @HiltViewModel
 class RecipeListViewModel @Inject constructor(
     private val recipeRepository: RecipeRepository,
-    private val savedStateHandle: SavedStateHandle
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     var state by mutableStateOf<RecipeListScreenState>(RecipeListScreenState())
     val category = mutableStateOf<String>("")
     val imageUrl = mutableStateOf<String>("")
+    val isEditModeOn = mutableStateOf<Boolean>(false)
+    val getSavedRecipes = mutableStateOf<Boolean>(false)
     private val _searchBoxState = mutableStateOf("")
     val searchBoxState: State<String> = _searchBoxState
     var searchJob: Job? = null
+    val recipesToBeDeleted = mutableStateListOf<String>("")
+    private val _toRecipeListScreenEvents = Channel<ToRecipeListScreenEvents>()
+    val toRecipeListScreenEvents = _toRecipeListScreenEvents.receiveAsFlow()
 
     init {
         category.value =
@@ -43,9 +46,13 @@ class RecipeListViewModel @Inject constructor(
             "recipelistviewmodel",
             "category is ${category.value}, image url is ${imageUrl.value}, temp is $temp"
         )
+        getSavedRecipes.value = savedStateHandle.get<Boolean>(Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES) ?: false
+        Log.d(
+            "recipelistviewmodel",
+            "get saved recipes is ${getSavedRecipes.value}"
+        )
     }
 
-    val recipePaginator = searchRecipe("")
 
     init {
         viewModelScope.launch {
@@ -80,7 +87,8 @@ class RecipeListViewModel @Inject constructor(
                     page = state.page,
                     pageSize = 20,
                     fetchFromRemote = false,
-                    recipe = recipe
+                    recipe = recipe,
+                    getSavedRecipes = getSavedRecipes.value
                 )
             },
             getNextKey = { items ->
@@ -111,4 +119,51 @@ class RecipeListViewModel @Inject constructor(
             paginator.loadNextItems()
         }
     }
+
+    fun onSelectRadioButtonClicked(title: String){
+        if(recipesToBeDeleted.contains(title)){
+            recipesToBeDeleted.remove(title)
+        }else{
+            recipesToBeDeleted.add(title)
+        }
+    }
+
+    fun onEvent(event: ToRecipeListScreenEvents){
+        viewModelScope.launch {
+            when (event) {
+                ToRecipeListScreenEvents.NavigateUp -> {
+                    _toRecipeListScreenEvents.send(ToRecipeListScreenEvents.NavigateUp)
+                }
+                is ToRecipeListScreenEvents.ShowSnackbar -> {
+                    _toRecipeListScreenEvents.send(ToRecipeListScreenEvents.ShowSnackbar(event.message))
+                }
+            }
+        }
+    }
+
+    fun receiveFromRecipeListScreenEvents(event: FromRecipeListScreenEvents){
+        viewModelScope.launch {
+            when(event){
+                FromRecipeListScreenEvents.DisableEditMode -> {
+                    recipesToBeDeleted.clear()
+                    isEditModeOn.value = false
+                }
+                FromRecipeListScreenEvents.DeleteButtonClicked -> {
+                    val result = recipeRepository.deleteSelectedSavedRecipes(recipeTitles = recipesToBeDeleted)
+                    onClearSearchBoxButtonClicked()
+                    onEvent(ToRecipeListScreenEvents.ShowSnackbar(result))
+                }
+            }
+        }
+    }
+}
+
+sealed interface ToRecipeListScreenEvents{
+    object NavigateUp: ToRecipeListScreenEvents
+    class ShowSnackbar(val message: String): ToRecipeListScreenEvents
+}
+
+sealed interface FromRecipeListScreenEvents{
+    object DisableEditMode: FromRecipeListScreenEvents
+    object DeleteButtonClicked: FromRecipeListScreenEvents
 }
