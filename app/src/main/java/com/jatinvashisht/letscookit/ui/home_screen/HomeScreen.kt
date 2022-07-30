@@ -1,5 +1,6 @@
 package com.jatinvashisht.letscookit.ui.home_screen
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -41,7 +42,8 @@ import java.nio.charset.StandardCharsets
 @Composable
 fun HomeScreen(
     viewModel: HomeScreenViewModel = hiltViewModel(),
-    navController: NavHostController
+    navController: NavHostController,
+    onFinishCalled: ()->Unit,
 ) {
     val topRecipesState by viewModel.topRecipes
     val categoriesState by viewModel.categoriesState
@@ -60,7 +62,18 @@ fun HomeScreen(
                 HomeScreenUiEvents.OpenNavDrawer -> {
                     scaffoldState.drawerState.open()
                 }
+                HomeScreenUiEvents.NavigateUp -> {
+                    navController.navigateUp()
+                }
             }
+        }
+    }
+
+    BackHandler {
+        if(scaffoldState.drawerState.isOpen){
+            viewModel.sendUiEvents(HomeScreenUiEvents.CloseNavDrawer)
+        }else{
+            onFinishCalled()
         }
     }
 
@@ -188,7 +201,7 @@ fun HomeScreen(
                         }
                     }
                     topRecipesState.error.isNotBlank() -> {
-                        Text(text = topRecipesState.error, color = Color.Yellow)
+                        Text(text = topRecipesState.error, color = Color.Yellow, modifier = Modifier.padding(horizontal = MyPadding.medium))
                     }
                     else -> {
                         LazyRow(verticalAlignment = Alignment.CenterVertically) {
@@ -261,69 +274,73 @@ fun HomeScreen(
             }
 
             item(5) {
-                if (categoriesState.isLoading) {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(color = MaterialTheme.colors.primaryVariant)
-                    }
-                } else if (categoriesState.error.isNotBlank()) {
-                    Text(text = categoriesState.error, color = Color.Yellow)
-                } else {
-                    LazyRow(verticalAlignment = Alignment.CenterVertically) {
-                        items(categoriesState.categories) { item ->
-//                        val encodedUrl = URLEncoder.encode("http://alphaone.me/", StandardCharsets.UTF_8.toString())
-                            Column(
-                                modifier = Modifier
-                                    .width(250.dp)
-                                    .height(170.dp)
-                                    .padding(horizontal = MyPadding.medium)
-                                    .clickable {
-                                        navController.navigate(
-                                            Screen.RecipeListScreen.route + "/${item.category}/${
-                                                URLEncoder.encode(
-                                                    item.imageUrl,
-                                                    StandardCharsets.UTF_8.toString()
-                                                )
-                                            }/false"
-                                        ) { launchSingleTop = true }
-                                    }
-                            )
-                            {
-                                SubcomposeAsyncImage(
-                                    model = item.imageUrl,
-                                    contentDescription = null,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .fillMaxHeight(0.6f)
-                                        .graphicsLayer {
-                                            shape = RoundedCornerShape(MyPadding.medium)
-                                            clip = true
-                                        },
-                                    contentScale = ContentScale.Crop,
-                                    loading = {
-                                        CircularProgressIndicator(
-                                            modifier = Modifier.size(20.dp),
-                                            color = MaterialTheme.colors.primaryVariant
-                                        )
-                                    },
-                                    filterQuality = FilterQuality.Medium,
-                                )
-                                Spacer(modifier = Modifier.width(MyPadding.small))
-                                Text(
-                                    text = item.category,
-                                    fontFamily = lemonMilkFonts,
-                                    fontWeight = FontWeight.Normal,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .fillMaxHeight()
-                                )
-                                Spacer(modifier = Modifier.width(MyPadding.small))
-                            }
+                when {
+                    categoriesState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = MaterialTheme.colors.primaryVariant)
                         }
                     }
-                    Spacer(modifier = Modifier.height(MyPadding.medium))
+                    categoriesState.error.isNotBlank() -> {
+                        Text(text = categoriesState.error, color = Color.Yellow, modifier = Modifier.padding(horizontal = MyPadding.medium))
+                    }
+                    else -> {
+                        LazyRow(verticalAlignment = Alignment.CenterVertically) {
+                            items(categoriesState.categories) { item ->
+            //                        val encodedUrl = URLEncoder.encode("http://alphaone.me/", StandardCharsets.UTF_8.toString())
+                                Column(
+                                    modifier = Modifier
+                                        .width(250.dp)
+                                        .height(170.dp)
+                                        .padding(horizontal = MyPadding.medium)
+                                        .clickable {
+                                            navController.navigate(
+                                                route = Screen.RecipeListScreen.route + "/${item.category}/${
+                                                    URLEncoder.encode(
+                                                        item.imageUrl,
+                                                        StandardCharsets.UTF_8.toString()
+                                                    )
+                                                }/false"
+                                            ) { launchSingleTop = true }
+                                        }
+                                )
+                                {
+                                    SubcomposeAsyncImage(
+                                        model = item.imageUrl,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight(0.6f)
+                                            .graphicsLayer {
+                                                shape = RoundedCornerShape(MyPadding.medium)
+                                                clip = true
+                                            },
+                                        contentScale = ContentScale.Crop,
+                                        loading = {
+                                            CircularProgressIndicator(
+                                                modifier = Modifier.size(20.dp),
+                                                color = MaterialTheme.colors.primaryVariant
+                                            )
+                                        },
+                                        filterQuality = FilterQuality.Medium,
+                                    )
+                                    Spacer(modifier = Modifier.width(MyPadding.small))
+                                    Text(
+                                        text = item.category,
+                                        fontFamily = lemonMilkFonts,
+                                        fontWeight = FontWeight.Normal,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .fillMaxHeight()
+                                    )
+                                    Spacer(modifier = Modifier.width(MyPadding.small))
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(MyPadding.medium))
+                    }
                 }
             }
         }

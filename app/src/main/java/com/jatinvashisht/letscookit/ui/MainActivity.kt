@@ -38,7 +38,9 @@ class MainActivity : ComponentActivity() {
                         startDestination = Screen.HomeScreen.route
                     ) {
                         composable(route = Screen.HomeScreen.route) {
-                            HomeScreen(navController = navController)
+                            HomeScreen(navController = navController){
+                                finish()
+                            }
                         }
                         composable(route = Screen.RecipeScreen.route + "/{${Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY}}/{${Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY}}/{${Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES}}",
                             arguments = listOf(

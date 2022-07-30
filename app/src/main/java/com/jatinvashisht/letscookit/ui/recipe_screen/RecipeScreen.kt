@@ -1,5 +1,7 @@
 package com.jatinvashisht.letscookit.ui.recipe_screen
 
+import android.graphics.pdf.PdfDocument
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -7,9 +9,7 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Save
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +26,7 @@ import androidx.navigation.NavHostController
 import coil.compose.SubcomposeAsyncImage
 import com.jatinvashisht.letscookit.core.MyPadding
 import com.jatinvashisht.letscookit.core.lemonMilkFonts
+import com.jatinvashisht.letscookit.data.remote.dto.recipes.Ingredient
 import com.jatinvashisht.letscookit.ui.custom_view.CustomShape
 import kotlinx.coroutines.flow.collectLatest
 
@@ -36,7 +37,8 @@ fun RecipeScreen(
 ) {
     val screenState = viewModel.recipeState.value
     val scaffoldState = rememberScaffoldState()
-
+    val numberOfPersons = viewModel.numberOfPersons.value
+    val ingredients = screenState.recipe.ingredient
     LaunchedEffect(key1 = Unit){
         viewModel.uiRecipeScreenEvents.collectLatest { event->
             when(event){
@@ -69,6 +71,7 @@ fun RecipeScreen(
         else -> {
             Scaffold(scaffoldState = scaffoldState) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
+
                     item {
                         Box(
                             modifier = Modifier
@@ -145,6 +148,18 @@ fun RecipeScreen(
                     }
 
                     item {
+                        NumberOfPersonSlider(
+                            currentValue = numberOfPersons,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = MyPadding.medium)
+                        ) {
+                            viewModel.onSliderValueChanged(it)
+                            Log.d("recipescreen", "number of persons $numberOfPersons")
+                        }
+                    }
+
+                    item {
                         Text(
                             text = "Ingredients",
                             fontFamily = lemonMilkFonts,
@@ -155,16 +170,17 @@ fun RecipeScreen(
                         Spacer(modifier = Modifier.height(MyPadding.medium))
                     }
 
-                    items(screenState.recipe.ingredient) { ingredient ->
-                        val ingredientInFloat =
-                            rememberSaveable { mutableStateOf(ingredient.quantity.toFloatOrNull()) }
-                        val ingredientInString = if (ingredientInFloat.value == null) {
+
+                    items(ingredients) { ingredient ->
+                        val ingredientQuantity = ingredient.quantity.toFloatOrNull()
+                            ?.times(viewModel.numberOfPersons.value)
+                        val modifiedIngredient = if(ingredientQuantity == null){
                             ""
-                        } else {
-                            "${ingredientInFloat.value} "
+                        }else{
+                            "$ingredientQuantity "
                         }
                         Text(
-                            text = "$ingredientInString${ingredient.description}",
+                            text = " ${modifiedIngredient}${ingredient.description}",
                             fontFamily = lemonMilkFonts,
                             fontWeight = FontWeight.Normal,
                             style = MaterialTheme.typography.body1,
@@ -196,6 +212,39 @@ fun RecipeScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun NumberOfPersonSlider(
+    modifier: Modifier = Modifier,
+    currentValue: Int,
+    onValueChanged: (Float) -> Unit,
+) {
+    Log.d("recipescreen", "current value is $currentValue")
+    Column(modifier = modifier) {
+    Text(
+        text = "Number of persons",
+        fontWeight = FontWeight.Medium,
+        fontFamily = lemonMilkFonts,
+        style = MaterialTheme.typography.h5)
+        Row(
+//            modifier = modifier,
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Slider(
+                value = currentValue.toFloat() / 10f,
+                onValueChange = onValueChanged,
+                modifier = Modifier.fillMaxWidth(0.75f),
+                colors = SliderDefaults.colors(
+                    thumbColor = MaterialTheme.colors.primaryVariant,
+                    activeTrackColor = MaterialTheme.colors.primaryVariant,
+                )
+            )
+            Spacer(modifier = Modifier.width(MyPadding.small))
+            Text(text = "$currentValue", modifier = Modifier.fillMaxWidth())
         }
     }
 }

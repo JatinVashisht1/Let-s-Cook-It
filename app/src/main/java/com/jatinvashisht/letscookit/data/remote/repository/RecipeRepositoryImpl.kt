@@ -24,15 +24,15 @@ class RecipeRepositoryImpl @Inject constructor(
 ) :
     RecipeRepository {
     private val recipeDao = recipeDatabase.dao
-    override suspend fun getFirstFourRecipes(): Resource<List<RecipeDtoItem>> {
+    override suspend fun getFirstFourRecipes(fetchFromRemote: Boolean): Resource<List<RecipeDtoItem>> {
         try {
-            val shouldJustLoadFromCache = recipeDao.searchRecipe("").isNotEmpty()
+            val shouldJustLoadFromCache = !fetchFromRemote && recipeDao.searchRecipe("").isNotEmpty()
             Log.d("reciperepository", "should just load from cache is, $shouldJustLoadFromCache")
             val myRecipes: List<RecipeEntity> = if (shouldJustLoadFromCache) {
                 recipeDao.getFirstFourRecipes()
             } else {
-                recipeDao.clearRecipes()
                 val remoteEntities = recipeApi.getRecipeList("snacks")
+                recipeDao.clearRecipes()
                 recipeDao.insertRecipes(remoteEntities.map {
                     it.toRecipeEntity()
                 })
@@ -75,6 +75,8 @@ class RecipeRepositoryImpl @Inject constructor(
     override suspend fun getCategories(): Flow<Resource<List<CategoryDtoItem>>> = flow {
         try {
             emit(Resource.Loading<List<CategoryDtoItem>>())
+            val categoriesBeforeApiCall = recipeDao.getAllCategories()
+            emit(Resource.Success<List<CategoryDtoItem>>(data = categoriesBeforeApiCall.map { it.toCategoryDtoItem() }))
             val recipes = recipeApi.getCategory()
 
             // no recipes are fetched

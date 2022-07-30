@@ -11,6 +11,7 @@ import androidx.lifecycle.viewModelScope
 import com.jatinvashisht.letscookit.core.Constants
 import com.jatinvashisht.letscookit.core.Resource
 import com.jatinvashisht.letscookit.data.mapper.toRecipeDtoItem
+import com.jatinvashisht.letscookit.data.remote.dto.recipes.Ingredient
 import com.jatinvashisht.letscookit.data.remote.dto.recipes.RecipeDtoItem
 import com.jatinvashisht.letscookit.domain.repository.RecipeRepository
 import com.jatinvashisht.letscookit.domain.usecases.UseCaseGetRecipeByTitle
@@ -20,6 +21,9 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
+import kotlin.math.ceil
 
 @HiltViewModel
 class RecipeScreenViewModel @Inject constructor(
@@ -36,13 +40,18 @@ class RecipeScreenViewModel @Inject constructor(
     private val _uiRecipeScreenEvents: Channel<RecipeScreenEvents> = Channel()
     val uiRecipeScreenEvents = _uiRecipeScreenEvents.receiveAsFlow()
 
-    init {
-        viewModelScope.launch {
-            val recipe = savedStateHandle.get<String>(Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY)
-            recipeTitle.value = recipe ?: ""
+    private val numberOfPersonsState = mutableStateOf<Int>(1)
+    val numberOfPersons = numberOfPersonsState as State<Int>
 
-            val category = savedStateHandle.get<String>(Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY)
-            recipeCategory.value = category ?: ""
+    init {
+        val recipe = savedStateHandle.get<String>(Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY)
+        val decodedTitle = URLDecoder.decode(recipe, StandardCharsets.UTF_8.toString())
+        val category = savedStateHandle.get<String>(Constants.RECIPE_SCREEN_RECIPE_CATEGORY_KEY)
+        val decodedCategory = URLDecoder.decode(category, StandardCharsets.UTF_8.toString())
+        viewModelScope.launch {
+            recipeTitle.value = decodedTitle ?: ""
+
+            recipeCategory.value = decodedCategory ?: ""
             Log.d("recipescreenviewmodel", "recipe is $recipe")
 
             val shouldLoadFromSavedRecipes = savedStateHandle.get<Boolean>(Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES) ?: true
@@ -116,6 +125,12 @@ class RecipeScreenViewModel @Inject constructor(
             sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar(result))
         }
     }
+
+    fun onSliderValueChanged(newValue: Float){
+        Log.d("recipescreenviewmodel", "new value of slider is $newValue value of ceil is ${ceil(newValue*10)}")
+        numberOfPersonsState.value = if(newValue <= 0.1f) 1 else (newValue*10).toInt()
+    }
+
 }
 
 sealed interface RecipeScreenEvents {

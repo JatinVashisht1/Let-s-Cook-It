@@ -49,6 +49,8 @@ import com.jatinvashisht.letscookit.ui.custom_view.CustomShape
 import com.jatinvashisht.letscookit.ui.recipe_screen.RecipeScreenViewModel
 import com.jatinvashisht.letscookit.ui.recipe_screen.components.RecipeScreenState
 import kotlinx.coroutines.flow.collectLatest
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -148,7 +150,11 @@ fun RecipeListScreen(
                         }
 
                         AnimatedVisibility(visible = !isEditModeOn) {
-                            Row (modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween){
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
                                 IconButton(
                                     onClick = { navController.navigateUp() },
                                     modifier = Modifier.padding(MyPadding.small)
@@ -241,7 +247,9 @@ fun RecipeListScreen(
                             }
                         }) {
                             if (!isEditModeOn) {
-                                navController.navigate(Screen.RecipeScreen.route + "/${item.title}/${item.tag}/${viewModel.getSavedRecipes.value}") {
+                                val title = URLEncoder.encode(item.title, StandardCharsets.UTF_8.toString())
+                                val tag = URLEncoder.encode(item.tag, StandardCharsets.UTF_8.toString())
+                                navController.navigate(Screen.RecipeScreen.route + "/${title}/${tag}/${viewModel.getSavedRecipes.value}") {
                                     launchSingleTop = true
                                 }
                             } else {
@@ -287,6 +295,16 @@ fun RecipeListScreen(
                                     viewModel.onSelectRadioButtonClicked(title = item.title)
                                 })
                         }
+                    }
+                }
+            }
+            if (state.isLoading) {
+                item {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colors.primaryVariant,
+                            modifier = Modifier
+                        )
                     }
                 }
             }

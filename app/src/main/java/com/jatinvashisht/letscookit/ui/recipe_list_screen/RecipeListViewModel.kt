@@ -97,7 +97,8 @@ class RecipeListViewModel @Inject constructor(
             onError = { throwable ->
                 state = state.copy(
                     error = throwable?.localizedMessage
-                        ?: "unable to load items, please try again later"
+                        ?: "unable to load items, please try again later",
+                    isLoading = false
                 )
             }
         ) { newItems, newKey ->

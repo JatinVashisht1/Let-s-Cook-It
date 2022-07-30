@@ -44,7 +44,7 @@ class HomeScreenViewModel @Inject constructor(
     init {
         viewModelScope.launch {
 //            async { loadNextItems() }
-            async { loadTopRecipes() }
+            async { loadTopRecipes(fetchFromRemote = false) }
             async { loadCategories() }
         }
     }
@@ -53,8 +53,8 @@ class HomeScreenViewModel @Inject constructor(
 //        recipePaginator.loadNextItems()
 //    }
 
-    private suspend fun loadTopRecipes() {
-        when (val recipeState = recipeRepository.getFirstFourRecipes()) {
+    private suspend fun loadTopRecipes(fetchFromRemote: Boolean) {
+        when (val recipeState = recipeRepository.getFirstFourRecipes(fetchFromRemote = fetchFromRemote)) {
             is Resource.Error -> {
                 topRecipesState.value =
                     topRecipesState.value.copy(error = "unable to load recipes", loading = false)
@@ -101,7 +101,7 @@ class HomeScreenViewModel @Inject constructor(
     fun refreshTopRecipes(){
         viewModelScope.launch {
             topRecipesState.value = topRecipesState.value.copy(loading = true)
-            loadTopRecipes()
+            loadTopRecipes(fetchFromRemote = true)
         }
     }
 
@@ -114,6 +114,9 @@ class HomeScreenViewModel @Inject constructor(
                 HomeScreenUiEvents.OpenNavDrawer -> {
                     _uiEvents.send(HomeScreenUiEvents.OpenNavDrawer)
                 }
+                HomeScreenUiEvents.NavigateUp -> {
+                    _uiEvents.send(HomeScreenUiEvents.NavigateUp)
+                }
             }
         }
     }
@@ -122,4 +125,5 @@ class HomeScreenViewModel @Inject constructor(
 sealed interface HomeScreenUiEvents{
     object CloseNavDrawer: HomeScreenUiEvents
     object OpenNavDrawer: HomeScreenUiEvents
+    object NavigateUp: HomeScreenUiEvents
 }
