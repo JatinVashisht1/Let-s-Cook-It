@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -109,7 +110,7 @@ fun RecipeScreen(
                                     modifier = Modifier.padding(4.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Save,
+                                        imageVector = Icons.Default.Favorite,
                                         contentDescription = "Save Recipe",
                                     )
                                 }
