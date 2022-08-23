@@ -6,11 +6,16 @@ plugins {
 }
 
 android {
+
+    kotlinOptions{
+        freeCompilerArgs = ['-Xjvm-default=compatibility']
+    }
+
     compileSdk 32
 
     defaultConfig {
         applicationId "com.jatinvashisht.letscookit"
-        minSdk 22
+        minSdk 23
         targetSdk 32
         versionCode 1
         versionName "1.0"
@@ -94,4 +99,7 @@ dependencies {
     implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
     implementation "com.squareup.okhttp3:okhttp:5.0.0-alpha.3"
     implementation "com.squareup.okhttp3:logging-interceptor:5.0.0-alpha.3"
+
+    // Permissions
+    implementation "com.google.accompanist:accompanist-permissions:0.25.0"
 }

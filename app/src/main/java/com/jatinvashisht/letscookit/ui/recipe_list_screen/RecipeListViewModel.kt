@@ -35,6 +35,8 @@ class RecipeListViewModel @Inject constructor(
     val recipesToBeDeleted = mutableStateListOf<String>("")
     private val _toRecipeListScreenEvents = Channel<ToRecipeListScreenEvents>()
     val toRecipeListScreenEvents = _toRecipeListScreenEvents.receiveAsFlow()
+    private val _isRefreshingState = mutableStateOf(false)
+    val isRefreshingState: State<Boolean> = _isRefreshingState
 
     init {
         category.value =
@@ -154,6 +156,9 @@ class RecipeListViewModel @Inject constructor(
                     onClearSearchBoxButtonClicked()
                     onEvent(ToRecipeListScreenEvents.ShowSnackbar(result))
                 }
+                FromRecipeListScreenEvents.ChangeRefreshState -> {
+                    _isRefreshingState.value = !_isRefreshingState.value
+                }
             }
         }
     }
@@ -167,4 +172,5 @@ sealed interface ToRecipeListScreenEvents{
 sealed interface FromRecipeListScreenEvents{
     object DisableEditMode: FromRecipeListScreenEvents
     object DeleteButtonClicked: FromRecipeListScreenEvents
+    object ChangeRefreshState : FromRecipeListScreenEvents
 }

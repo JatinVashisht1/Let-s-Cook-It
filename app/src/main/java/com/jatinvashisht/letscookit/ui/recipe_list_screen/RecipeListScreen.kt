@@ -7,7 +7,6 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,7 +17,6 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.runtime.*
@@ -27,27 +25,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.SoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import coil.compose.SubcomposeAsyncImage
+import com.google.accompanist.swiperefresh.SwipeRefresh
+import com.google.accompanist.swiperefresh.rememberSwipeRefreshState
 import com.jatinvashisht.letscookit.core.MyPadding
 import com.jatinvashisht.letscookit.core.Screen
 import com.jatinvashisht.letscookit.core.lemonMilkFonts
 import com.jatinvashisht.letscookit.ui.custom_view.CustomShape
-import com.jatinvashisht.letscookit.ui.recipe_screen.RecipeScreenViewModel
-import com.jatinvashisht.letscookit.ui.recipe_screen.components.RecipeScreenState
 import kotlinx.coroutines.flow.collectLatest
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
@@ -64,6 +59,7 @@ fun RecipeListScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val isEditModeOn = viewModel.isEditModeOn.value
     val scaffoldState = rememberScaffoldState()
+    val refreshState = rememberSwipeRefreshState(isRefreshing = viewModel.isRefreshingState.value)
 
     LaunchedEffect(key1 = Unit) {
         viewModel.toRecipeListScreenEvents.collectLatest {
@@ -84,6 +80,54 @@ fun RecipeListScreen(
         }
     }
 
+
+
+    if (viewModel.getSavedRecipes.value) {
+        SwipeRefresh(state = refreshState, onRefresh = {
+            if (viewModel.getSavedRecipes.value) {
+                viewModel.receiveFromRecipeListScreenEvents(FromRecipeListScreenEvents.ChangeRefreshState)
+                viewModel.onClearSearchBoxButtonClicked()
+                viewModel.receiveFromRecipeListScreenEvents(FromRecipeListScreenEvents.ChangeRefreshState)
+            }
+        }) {
+            RecipeListUi(
+                scaffoldState = scaffoldState,
+                viewModel = viewModel,
+                isEditModeOn = isEditModeOn,
+                navController = navController,
+                showSearchBoxState = showSearchBoxState,
+                searchBoxState = searchBoxState,
+                keyboardController = keyboardController,
+                state = state
+            )
+        }
+    }else{
+        RecipeListUi(
+            scaffoldState = scaffoldState,
+            viewModel = viewModel,
+            isEditModeOn = isEditModeOn,
+            navController = navController,
+            showSearchBoxState = showSearchBoxState,
+            searchBoxState = searchBoxState,
+            keyboardController = keyboardController,
+            state = state
+        )
+    }
+}
+
+@OptIn(ExperimentalComposeUiApi::class)
+@Composable
+fun RecipeListUi(
+    isEditModeOn: Boolean,
+    viewModel: RecipeListViewModel,
+    scaffoldState: ScaffoldState,
+    navController: NavHostController,
+    showSearchBoxState: MutableState<Boolean>,
+    searchBoxState: String,
+    keyboardController: SoftwareKeyboardController?,
+    state: RecipeListScreenState,
+
+    ) {
     Scaffold(scaffoldState = scaffoldState) {
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
@@ -247,8 +291,12 @@ fun RecipeListScreen(
                             }
                         }) {
                             if (!isEditModeOn) {
-                                val title = URLEncoder.encode(item.title, StandardCharsets.UTF_8.toString())
-                                val tag = URLEncoder.encode(item.tag, StandardCharsets.UTF_8.toString())
+                                val title =
+                                    URLEncoder.encode(item.title,
+                                        StandardCharsets.UTF_8.toString())
+                                val tag =
+                                    URLEncoder.encode(item.tag,
+                                        StandardCharsets.UTF_8.toString())
                                 navController.navigate(Screen.RecipeScreen.route + "/${title}/${tag}/${viewModel.getSavedRecipes.value}") {
                                     launchSingleTop = true
                                 }
@@ -300,7 +348,8 @@ fun RecipeListScreen(
             }
             if (state.isLoading) {
                 item {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center) {
                         CircularProgressIndicator(
                             color = MaterialTheme.colors.primaryVariant,
                             modifier = Modifier
