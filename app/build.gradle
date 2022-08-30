@@ -43,7 +43,7 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion compose_version
+        kotlinCompilerExtensionVersion "1.3.0"
     }
     packagingOptions {
         resources {
@@ -102,4 +102,6 @@ dependencies {
 
     // Permissions
     implementation "com.google.accompanist:accompanist-permissions:0.25.0"
+
+    implementation "me.onebone:toolbar-compose:2.3.4"
 }

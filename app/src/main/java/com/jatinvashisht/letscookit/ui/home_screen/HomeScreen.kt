@@ -77,6 +77,7 @@ fun HomeScreen(
         }
     }
 
+
     Scaffold(
         scaffoldState = scaffoldState,
         drawerContent = {
@@ -98,7 +99,7 @@ fun HomeScreen(
                 }
             }
         }
-    ) {
+    ) {padding->
         LazyColumn() {
             item(1) {
                 Column(

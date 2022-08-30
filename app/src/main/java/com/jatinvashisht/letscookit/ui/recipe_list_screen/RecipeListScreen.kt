@@ -44,6 +44,9 @@ import com.jatinvashisht.letscookit.core.Screen
 import com.jatinvashisht.letscookit.core.lemonMilkFonts
 import com.jatinvashisht.letscookit.ui.custom_view.CustomShape
 import kotlinx.coroutines.flow.collectLatest
+import me.onebone.toolbar.CollapsingToolbarScaffold
+import me.onebone.toolbar.ScrollStrategy
+import me.onebone.toolbar.rememberCollapsingToolbarScaffoldState
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -128,7 +131,18 @@ fun RecipeListUi(
     state: RecipeListScreenState,
 
     ) {
-    Scaffold(scaffoldState = scaffoldState) {
+    val collapsingToolbarScaffoldState = rememberCollapsingToolbarScaffoldState()
+    CollapsingToolbarScaffold(
+        modifier = Modifier.fillMaxSize(),
+        state = collapsingToolbarScaffoldState,
+        scrollStrategy = ScrollStrategy.ExitUntilCollapsed,
+        toolbar = {
+
+        }
+    ) {
+
+    }
+    Scaffold(scaffoldState = scaffoldState) {padding->
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
                 Box(
