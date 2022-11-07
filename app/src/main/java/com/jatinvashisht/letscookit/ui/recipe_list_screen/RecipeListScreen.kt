@@ -19,7 +19,10 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
@@ -44,9 +47,6 @@ import com.jatinvashisht.letscookit.core.Screen
 import com.jatinvashisht.letscookit.core.lemonMilkFonts
 import com.jatinvashisht.letscookit.ui.custom_view.CustomShape
 import kotlinx.coroutines.flow.collectLatest
-import me.onebone.toolbar.CollapsingToolbarScaffold
-import me.onebone.toolbar.ScrollStrategy
-import me.onebone.toolbar.rememberCollapsingToolbarScaffoldState
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -131,17 +131,6 @@ fun RecipeListUi(
     state: RecipeListScreenState,
 
     ) {
-    val collapsingToolbarScaffoldState = rememberCollapsingToolbarScaffoldState()
-    CollapsingToolbarScaffold(
-        modifier = Modifier.fillMaxSize(),
-        state = collapsingToolbarScaffoldState,
-        scrollStrategy = ScrollStrategy.ExitUntilCollapsed,
-        toolbar = {
-
-        }
-    ) {
-
-    }
     Scaffold(scaffoldState = scaffoldState) {padding->
         LazyColumn(modifier = Modifier.fillMaxSize()) {
             item {
@@ -178,7 +167,8 @@ fun RecipeListUi(
                                 clip = true
                             }
                             .align(Alignment.Center),
-                        contentScale = ContentScale.Crop
+                        contentScale = ContentScale.Crop,
+                        filterQuality = FilterQuality.Medium
                     )
 
                     Row(
@@ -272,7 +262,7 @@ fun RecipeListUi(
                     }
 
                     Text(
-                        text = viewModel.category.value,
+                        text = viewModel.category.value.ifBlank { "Search across all recipes!" },
                         style = MaterialTheme.typography.h4,
                         fontWeight = FontWeight.ExtraLight,
                         textAlign = TextAlign.Center,
@@ -297,7 +287,7 @@ fun RecipeListUi(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(250.dp)
+                        .wrapContentHeight()
                         .padding(MyPadding.small)
                         .combinedClickable(onLongClick = {
                             if (!isEditModeOn && viewModel.getSavedRecipes.value) {
@@ -324,7 +314,8 @@ fun RecipeListUi(
                         contentDescription = null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(0.8f)
+                            .height((0.8f * 250).dp)
+//                            .fillMaxHeight(0.8f)
                             .graphicsLayer {
 //                            alpha = if(isEditModeOn) 0.7f else 1.0f
                                 shape = RoundedCornerShape(MyPadding.medium)
@@ -348,7 +339,7 @@ fun RecipeListUi(
                             fontWeight = FontWeight.Normal,
                             modifier = Modifier
                                 .fillMaxWidth(0.7f)
-                                .animateItemPlacement(tween(300))
+//                                .animateItemPlacement(tween(300))
                         )
                         AnimatedVisibility(isEditModeOn) {
                             RadioButton(

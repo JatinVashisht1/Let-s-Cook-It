@@ -21,6 +21,9 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import com.jatinvashisht.letscookit.core.Constants
 import com.jatinvashisht.letscookit.core.Screen
+import com.jatinvashisht.letscookit.ui.categories_screen.CategoriesScreen
+import com.jatinvashisht.letscookit.ui.contact_us_screen.ContactUsComposable
+import com.jatinvashisht.letscookit.ui.contact_us_screen.ContactUsScreen
 import com.jatinvashisht.letscookit.ui.home_screen.HomeScreen
 import com.jatinvashisht.letscookit.ui.recipe_list_screen.RecipeListScreen
 import com.jatinvashisht.letscookit.ui.recipe_screen.RecipeScreen
@@ -88,6 +91,16 @@ class MainActivity : ComponentActivity() {
                           )
                       ) {
                           RecipeListScreen(navController = navController)
+                      }
+
+                      composable(route = Screen.CategoriesScreen.route){
+                          CategoriesScreen(
+                              navController = navController
+                          )
+                      }
+
+                      composable(route = Screen.ContactUsScreen.route){
+                          ContactUsComposable(navController = navController, context = this@MainActivity)
                       }
                   }
               }

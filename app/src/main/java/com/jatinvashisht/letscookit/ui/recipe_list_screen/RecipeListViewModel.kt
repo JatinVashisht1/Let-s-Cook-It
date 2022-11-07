@@ -40,7 +40,7 @@ class RecipeListViewModel @Inject constructor(
 
     init {
         category.value =
-            savedStateHandle.get<String>(Constants.RECIPE_LIST_SCREEN_RECIPE_CATEGORY_KEY)!!
+            savedStateHandle.get<String>(Constants.RECIPE_LIST_SCREEN_RECIPE_CATEGORY_KEY)!!.trim()
         imageUrl.value =
             savedStateHandle.get<String>(Constants.RECIPE_LIST_SCREEN_RECIPE_IMAGE_URL_KEY)!!
         val temp = URLDecoder.decode(imageUrl.value, StandardCharsets.UTF_8.toString())

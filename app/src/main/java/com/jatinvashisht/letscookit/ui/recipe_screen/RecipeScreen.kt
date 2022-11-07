@@ -7,6 +7,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -19,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
@@ -87,7 +89,7 @@ fun RecipeScreen(
             }
         }
         else -> {
-            Scaffold(scaffoldState = scaffoldState) {
+            Scaffold(scaffoldState = scaffoldState) {padding->
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
 
                     item {
@@ -187,7 +189,8 @@ fun RecipeScreen(
                                         clip = true
                                     }
                                     .align(Alignment.Center),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                filterQuality = FilterQuality.Medium
                             )
                             Text(
                                 text = screenState.recipe.title,
@@ -198,6 +201,50 @@ fun RecipeScreen(
                                 fontFamily = lemonMilkFonts,
                                 modifier = Modifier.align(Alignment.Center)
                             )
+                        }
+//                        Spacer(modifier = Modifier.height(MyPadding.medium))
+                    }
+
+                    item {
+                        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically){
+                            Text(
+                                text = "Download Ingredients",
+                                fontFamily = lemonMilkFonts,
+                                fontWeight = FontWeight.Medium,
+                                style = MaterialTheme.typography.h6,
+                                modifier = Modifier.padding(horizontal = MyPadding.medium)
+                                    .clickable{
+                                        if (multiplePermissionState.shouldShowRationale) {
+                                            viewModel.sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar(
+                                                "Please provide storage permission to continue"))
+                                        } else if (!multiplePermissionState.allPermissionsGranted) {
+                                            multiplePermissionState.launchMultiplePermissionRequest()
+                                        } else {
+                                            exportPdf(context = context,
+                                                ingredients = ingredients,
+                                                viewModel = viewModel,
+                                                name = screenState.recipe.title)
+                                        }
+
+                                    }
+                            )
+                            Spacer(modifier = Modifier.height(MyPadding.medium))
+                            IconButton(onClick = {
+                                if (multiplePermissionState.shouldShowRationale) {
+                                    viewModel.sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar(
+                                        "Please provide storage permission to continue"))
+                                } else if (!multiplePermissionState.allPermissionsGranted) {
+                                    multiplePermissionState.launchMultiplePermissionRequest()
+                                } else {
+                                    exportPdf(context = context,
+                                        ingredients = ingredients,
+                                        viewModel = viewModel,
+                                        name = screenState.recipe.title)
+                                }
+                            }) {
+                                Icon(imageVector = Icons.Default.DownloadForOffline,
+                                    contentDescription = "download recipe")
+                            }
                         }
                         Spacer(modifier = Modifier.height(MyPadding.medium))
                     }
