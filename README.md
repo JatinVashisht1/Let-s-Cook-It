@@ -1,5 +1,11 @@
 # Let's Cook It Android Application
 
+## Video Preview
+[![Watch the video](https://img.youtube.com/vi/<VIDEO_ID>/hqdefault.jpg)]("./assets/lets_cook_it_working_application_screen_recording.mp4")
+
+[<img src="https://img.youtube.com/vi/<VIDEO_ID>/hqdefault.jpg" width="600" height="300"
+/>]()
+
 Welcome to the Recipe Android Application repository! This application is designed to help users discover, save, and customize their favorite recipes. Built entirely using Kotlin and Jetpack Compose, it incorporates modern Android development practices, asynchronous programming, local database caching, and a custom API for a seamless user experience. 
 
 ## Features
