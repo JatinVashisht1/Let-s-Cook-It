@@ -31,7 +31,7 @@ The API can be accessed at [https://recipeapi.github.io](https://recipeapi.githu
 
 1. Clone this repository.
 2. Open the project in Android Studio.
-3. Build and run the application on an emulator or a physical device with Android OS version X.X and above.
+3. Build and run the application on an emulator or a physical device with Android OS version 5.1 and above.
 
 ## Getting Started
 
