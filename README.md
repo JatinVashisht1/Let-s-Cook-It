@@ -25,6 +25,7 @@ Welcome to the Recipe Android Application repository! This application is design
 ## API Details
 
 The application relies on a custom API created using web scraping techniques. The API is hosted on GitHub Pages as static files, providing reliable data for the app's functionality.
+The API can be accessed at (https://recipeapi.github.io)[https://recipeapi.github.io]
 
 ## How to Run
 
