@@ -2,6 +2,9 @@
 
 Welcome to the Recipe Android Application repository! This application is designed to help users discover, save, and customize their favorite recipes. Built entirely using Kotlin and Jetpack Compose, it incorporates modern Android development practices, asynchronous programming, local database caching, and a custom API for a seamless user experience. 
 
+## Video Preview
+
+
 ## Features
 
 - **100% Jetpack Compose UI:** The application boasts a beautiful and responsive user interface created entirely with Jetpack Compose, ensuring a smooth user experience.
