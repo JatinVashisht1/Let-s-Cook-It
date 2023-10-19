@@ -221,9 +221,7 @@ class RecipeRepositoryImpl @Inject constructor(
     override suspend fun getLocalRecipeByTitle(title: String): Resource<ModelLocalRecipe?> {
         try {
             val localRecipeEntity = recipeDao.getSavedRecipeByTitle(title = title)
-            if (localRecipeEntity == null) {
-                return Resource.Success<ModelLocalRecipe?>(data = localRecipeEntity)
-            }
+                ?: return Resource.Success<ModelLocalRecipe?>(data = null)
             val modelRecipeEntity = localRecipeEntity.toModelLocalRecipe()
             return Resource.Success<ModelLocalRecipe?>(data = modelRecipeEntity)
         } catch (e: Exception) {

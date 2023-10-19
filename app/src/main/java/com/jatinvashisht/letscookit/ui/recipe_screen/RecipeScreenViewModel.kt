@@ -11,10 +11,9 @@ import androidx.lifecycle.viewModelScope
 import com.jatinvashisht.letscookit.core.Constants
 import com.jatinvashisht.letscookit.core.Resource
 import com.jatinvashisht.letscookit.data.mapper.toRecipeDtoItem
-import com.jatinvashisht.letscookit.data.remote.dto.recipes.Ingredient
 import com.jatinvashisht.letscookit.data.remote.dto.recipes.RecipeDtoItem
 import com.jatinvashisht.letscookit.domain.repository.RecipeRepository
-import com.jatinvashisht.letscookit.domain.usecases.UseCaseGetRecipeByTitle
+import com.jatinvashisht.letscookit.domain.usecases.UseCaseGetRecipeSavedStatus
 import com.jatinvashisht.letscookit.domain.usecases.UseCaseSaveRecipe
 import com.jatinvashisht.letscookit.ui.recipe_screen.components.RecipeScreenState
 import kotlinx.coroutines.channels.Channel
@@ -29,7 +28,8 @@ import kotlin.math.ceil
 class RecipeScreenViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val recipeRepository: RecipeRepository,
-    private val useCaseSaveRecipe: UseCaseSaveRecipe
+    private val useCaseSaveRecipe: UseCaseSaveRecipe,
+    private val useCaseGetRecipeSavedStatus: UseCaseGetRecipeSavedStatus
 ) : ViewModel() {
     private val _recipeState = mutableStateOf<RecipeScreenState>(RecipeScreenState())
     val recipeState: State<RecipeScreenState> = _recipeState
@@ -42,6 +42,9 @@ class RecipeScreenViewModel @Inject constructor(
 
     private val numberOfPersonsState = mutableStateOf<Int>(1)
     val numberOfPersons = numberOfPersonsState as State<Int>
+
+    private val _favouriteState = mutableStateOf(RecipeSaveState.UNABLE_TO_SAVE)
+    val favouriteState: State<RecipeSaveState> = _favouriteState
 
     init {
         val recipe = savedStateHandle.get<String>(Constants.RECIPE_SCREEN_RECIPE_TITLE_KEY)
@@ -57,6 +60,7 @@ class RecipeScreenViewModel @Inject constructor(
             val shouldLoadFromSavedRecipes = savedStateHandle.get<Boolean>(Constants.RECIPE_SCREEN_SHOULD_LOAD_FROM_SAVED_RECIPES) ?: true
             Log.d("recipescreenviewmodel", "should load from saved recipes is $shouldLoadFromSavedRecipes")
             getRecipe(shouldLoadFromSavedRecipes = shouldLoadFromSavedRecipes)
+            setFavouriteState()
         }
     }
 
@@ -106,7 +110,7 @@ class RecipeScreenViewModel @Inject constructor(
         }
     }
 
-    private fun sendRecipeScreenUiEvent(uiEvents: RecipeScreenEvents) {
+    fun sendRecipeScreenUiEvent(uiEvents: RecipeScreenEvents) {
         viewModelScope.launch {
             when (uiEvents) {
                 is RecipeScreenEvents.ShowSnackbar -> _uiRecipeScreenEvents.send(
@@ -118,11 +122,38 @@ class RecipeScreenViewModel @Inject constructor(
         }
     }
 
+    private fun setFavouriteState(){
+        viewModelScope.launch {
+            val currentRecipe = _recipeState.value.recipe
+            useCaseGetRecipeSavedStatus(title = currentRecipe.title).collectLatest {
+                _favouriteState.value = it
+            }
+            Log.d("recipescreenviewmodel","favourite state is ${recipeTitle.value}")
+        }
+    }
+
     fun onSaveRecipeButtonClicked() {
         viewModelScope.launch {
             val currentRecipe = _recipeState.value.recipe
-            val result = useCaseSaveRecipe(recipeDtoItem = currentRecipe)
-            sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar(result))
+            useCaseSaveRecipe(recipeDtoItem = currentRecipe).collectLatest {
+                _favouriteState.value = it
+            }
+            Log.d("recipescreenviewmodel","favourite state is ${_favouriteState.value.name}")
+            when (_favouriteState.value){
+                RecipeSaveState.SAVED -> {
+                    sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar("Recipe SAVED successfully"))
+                }
+                RecipeSaveState.ALREADY_EXISTS -> {
+                    sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar("Recipe ALREADY exists"))
+                }
+                RecipeSaveState.UNABLE_TO_SAVE -> {
+                    sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar("UNABLE to save recipe, try again"))
+                }
+                RecipeSaveState.NOT_SAVED -> {
+                    sendRecipeScreenUiEvent(RecipeScreenEvents.ShowSnackbar("REMOVED from favourites"))
+                }
+            }
+
         }
     }
 

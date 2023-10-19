@@ -117,6 +117,12 @@ class HomeScreenViewModel @Inject constructor(
                 HomeScreenUiEvents.NavigateUp -> {
                     _uiEvents.send(HomeScreenUiEvents.NavigateUp)
                 }
+                HomeScreenUiEvents.NavigateToSearchRecipesScreen -> {
+                    _uiEvents.send(HomeScreenUiEvents.NavigateToSearchRecipesScreen)
+                }
+                HomeScreenUiEvents.NavigateToCategoriesScreen -> {
+                    _uiEvents.send(HomeScreenUiEvents.NavigateToCategoriesScreen)
+                }
             }
         }
     }
@@ -126,4 +132,6 @@ sealed interface HomeScreenUiEvents{
     object CloseNavDrawer: HomeScreenUiEvents
     object OpenNavDrawer: HomeScreenUiEvents
     object NavigateUp: HomeScreenUiEvents
+    object NavigateToSearchRecipesScreen: HomeScreenUiEvents
+    object NavigateToCategoriesScreen: HomeScreenUiEvents
 }
